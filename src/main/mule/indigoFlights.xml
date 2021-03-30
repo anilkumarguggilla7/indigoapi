@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="311ed672-dd72-4d65-a739-7e61f8c8a067" >
+		<http:request-connection host="indigo-airlines.us-e2.cloudhub.io" port="80" />
+	</http:request-config>
+	<flow name="indigoFlightsFlow" doc:id="d63793f4-9094-4826-93aa-ed4fb0270e0b" >
+		<logger level="INFO" doc:name="Logger" doc:id="cb32c75f-0787-4d57-b3f9-5aad2f17a7f3" message="indigo flights flow starts here................"/>
+		<http:request method="GET" doc:name="Request" doc:id="fbc60ba7-fce5-4328-b96a-71961c1cdcb8" config-ref="HTTP_Request_configuration" path="/api/getFlights">
+			<http:query-params ><![CDATA[#[output application/java
+---
+{
+	from : attributes.queryParams.source,
+	to : attributes.queryParams.destination,
+	depatureDate : attributes.queryParams.doj
+}]]]></http:query-params>
+		</http:request>
+		<logger level="INFO" doc:name="Logger" doc:id="0f4291af-cc3b-4cc3-983a-76889a882cc8" message="response from indigo.............#[payload]"/>
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="2e48d642-6106-41ad-ad08-5adf94496420" >
+				<ee:transform doc:name="Transform Message" doc:id="90e5d9d1-f7ea-4f0c-b146-f6d1b312910b" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	statusCode:500,
+	message:"unable get flights due to target system is down"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<logger level="INFO" doc:name="Logger" doc:id="824c887d-5616-442e-b3ef-a643b52ddb4d" message="response from error propagate............#[payload]"/>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+</mule>
